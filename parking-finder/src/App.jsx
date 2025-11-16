@@ -22,6 +22,52 @@ function App() {
     const [floor, setFloor] = useState('')
     const [zone, setZone] = useState('')
     const [showCamera, setShowCamera] = useState(false)
+    const [loading, setLoading] = useState(false)
+    const [notificationPermission, setNotificationPermission] = useState(null)
+    const [reminderTime, setReminderTime] = useState('') // 알림 시간 (분 단위)
+
+    // 알림 권한 확인
+    useEffect(() => {
+        if ('Notification' in window) {
+            setNotificationPermission(Notification.permission)
+        }
+    }, [])
+
+    // 알림 권한 요청
+    const requestNotificationPermission = async () => {
+        if ('Notification' in window) {
+            const permission = await Notification.requestPermission()
+            setNotificationPermission(permission)
+            if (permission === 'granted') {
+                alert('알림 권한이 허용되었습니다! 🔔')
+            }
+        } else {
+            alert('이 브라우저는 알림을 지원하지 않습니다.')
+        }
+    }
+
+    // 푸시 알림 전송
+    const sendNotification = (title, body) => {
+        if (Notification.permission === 'granted') {
+            new Notification(title, {
+                body: body,
+                icon: '🚗',
+                badge: '🚗',
+                vibrate: [200, 100, 200],
+            })
+        }
+    }
+
+    // 알림 스케줄링
+    const scheduleNotification = (minutes) => {
+        const milliseconds = minutes * 60 * 1000
+        setTimeout(() => {
+            sendNotification(
+                '🚗 주차 위치 알림',
+                `${minutes}분 전에 주차하셨습니다. 차량 위치를 확인하세요!`
+            )
+        }, milliseconds)
+    }
 
     const handlePhotoCapture = (e) => {
         const file = e.target.files && e.target.files[0]
@@ -63,30 +109,79 @@ function App() {
     }
 
     const handleSaveParking = () => {
-        const data = {
-            lat: 37.5665,
-            lng: 126.9780,
-            photo: photo,
-            memo: memo,
-            floor: floor,
-            zone: zone,
-            timestamp: new Date().toISOString()
-        }
+        setLoading(true)
 
-        localStorage.setItem('parkingData', JSON.stringify(data))
-        setParkingData(data)
-        setPhoto(null)
-        setMemo('')
-        setFloor('')
-        setZone('')
-        setShowCamera(false)
-        alert('주차 위치가 저장되었습니다! 🚗')
+        // 실제 GPS 위치 가져오기
+        if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const data = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                        photo: photo,
+                        memo: memo,
+                        floor: floor,
+                        zone: zone,
+                        timestamp: new Date().toISOString(),
+                        reminderTime: reminderTime
+                    }
+
+                    localStorage.setItem('parkingData', JSON.stringify(data))
+                    setParkingData(data)
+                    setPhoto(null)
+                    setMemo('')
+                    setFloor('')
+                    setZone('')
+                    setReminderTime('')
+                    setShowCamera(false)
+                    setLoading(false)
+
+                    // 즉시 알림
+                    sendNotification('✅ 주차 위치 저장 완료!', '주차 위치가 성공적으로 저장되었습니다.')
+
+                    // 알림 스케줄링
+                    if (reminderTime && parseInt(reminderTime) > 0) {
+                        scheduleNotification(parseInt(reminderTime))
+                        alert(`${reminderTime}분 후에 알림을 보내드릴게요! 🔔`)
+                    } else {
+                        alert('주차 위치가 저장되었습니다! 🚗')
+                    }
+                },
+                (error) => {
+                    setLoading(false)
+                    let errorMsg = '위치를 가져올 수 없습니다.'
+
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMsg = '위치 권한이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용해주세요.'
+                            break
+                        case error.POSITION_UNAVAILABLE:
+                            errorMsg = '위치 정보를 사용할 수 없습니다.'
+                            break
+                        case error.TIMEOUT:
+                            errorMsg = '위치 요청 시간이 초과되었습니다.'
+                            break
+                    }
+
+                    alert('오류: ' + errorMsg)
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            )
+        } else {
+            setLoading(false)
+            alert('이 브라우저는 위치 서비스를 지원하지 않습니다.')
+        }
     }
 
     const handleDeleteParking = () => {
         if (window.confirm('저장된 주차 위치를 삭제하시겠습니까?')) {
             localStorage.removeItem('parkingData')
             setParkingData(null)
+            sendNotification('🗑️ 주차 위치 삭제됨', '저장된 주차 위치가 삭제되었습니다.')
             alert('삭제되었습니다.')
         }
     }
@@ -104,6 +199,21 @@ function App() {
                 <div className="header-icon">🚗</div>
                 <h1>주차 위치 찾기</h1>
                 <p className="header-subtitle">내 차는 어디에?</p>
+
+                {/* 알림 권한 버튼 */}
+                {notificationPermission !== 'granted' && (
+                    <button
+                        onClick={requestNotificationPermission}
+                        className="notification-permission-btn"
+                    >
+                        🔔 알림 권한 허용하기
+                    </button>
+                )}
+                {notificationPermission === 'granted' && (
+                    <div className="notification-status">
+                        ✅ 알림 활성화됨
+                    </div>
+                )}
             </header>
 
             <main className="main">
@@ -112,7 +222,7 @@ function App() {
                         <div className="info-header">
                             <h2>💖 저장된 주차 위치</h2>
                             <div className="elapsed-time">
-                                ⏰ {formatDistanceToNow(new Date(parkingData.timestamp), {
+                                {formatDistanceToNow(new Date(parkingData.timestamp), {
                                     addSuffix: true,
                                     locale: ko
                                 })} 주차
@@ -123,7 +233,7 @@ function App() {
                         <div className="map-wrapper">
                             <MapContainer
                                 center={[parkingData.lat, parkingData.lng]}
-                                zoom={16}
+                                zoom={17}
                                 style={{ height: '300px', width: '100%', borderRadius: '20px' }}
                             >
                                 <TileLayer
@@ -138,6 +248,14 @@ function App() {
                                     </Popup>
                                 </Marker>
                             </MapContainer>
+                        </div>
+
+                        {/* GPS 좌표 표시 */}
+                        <div className="gps-coords">
+                            <span className="coords-icon">📍</span>
+                            <span className="coords-text">
+                                위도: {parkingData.lat.toFixed(6)}, 경도: {parkingData.lng.toFixed(6)}
+                            </span>
                         </div>
 
                         {/* 층수/구역 정보 */}
@@ -172,6 +290,13 @@ function App() {
                             <div className="memo-display">
                                 <span className="memo-icon">📝</span>
                                 <span className="memo-text">{parkingData.memo}</span>
+                            </div>
+                        )}
+
+                        {/* 알림 설정 정보 */}
+                        {parkingData.reminderTime && (
+                            <div className="reminder-info">
+                                🔔 {parkingData.reminderTime}분 후 알림 예정
                             </div>
                         )}
 
@@ -260,6 +385,26 @@ function App() {
                                     </div>
                                 </div>
 
+                                {/* 알림 시간 설정 */}
+                                <div className="input-field">
+                                    <label className="input-label">
+                                        <span className="label-icon">⏰</span>
+                                        <span>알림 시간 (선택사항)</span>
+                                    </label>
+                                    <select
+                                        value={reminderTime}
+                                        onChange={(e) => setReminderTime(e.target.value)}
+                                        className="text-input"
+                                    >
+                                        <option value="">알림 없음</option>
+                                        <option value="30">30분 후</option>
+                                        <option value="60">1시간 후</option>
+                                        <option value="120">2시간 후</option>
+                                        <option value="180">3시간 후</option>
+                                        <option value="240">4시간 후</option>
+                                    </select>
+                                </div>
+
                                 <div className="input-field">
                                     <label className="input-label">
                                         <span className="label-icon">📝</span>
@@ -277,10 +422,11 @@ function App() {
                                 <div className="button-group">
                                     <button
                                         onClick={handleSaveParking}
+                                        disabled={loading}
                                         className="button button-primary"
                                     >
-                                        <span className="button-icon">💾</span>
-                                        <span>저장</span>
+                                        <span className="button-icon">{loading ? '⏳' : '💾'}</span>
+                                        <span>{loading ? '저장 중...' : '저장'}</span>
                                     </button>
                                     <button
                                         onClick={() => {
@@ -289,6 +435,7 @@ function App() {
                                             setMemo('')
                                             setFloor('')
                                             setZone('')
+                                            setReminderTime('')
                                         }}
                                         className="button button-secondary"
                                     >

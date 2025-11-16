@@ -92,6 +92,44 @@ body {
   font-weight: 500;
 }
 
+.notification-permission-btn {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50px;
+  color: white;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  position: relative;
+  z-index: 1;
+}
+
+.notification-permission-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.notification-status {
+  margin-top: 1rem;
+  padding: 0.5rem 1.25rem;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50px;
+  color: white;
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: inline-block;
+  position: relative;
+  z-index: 1;
+}
+
 .main {
   max-width: 900px;
   margin: 0 auto;
@@ -177,7 +215,6 @@ body {
   letter-spacing: -0.5px;
 }
 
-/* 지도 스타일 */
 .map-wrapper {
   margin-bottom: 2rem;
   border-radius: 20px;
@@ -186,7 +223,31 @@ body {
   border: 3px solid #f0f0f0;
 }
 
-/* 층수/구역 태그 */
+.gps-coords {
+  background: linear-gradient(135deg, #f6f8fb 0%, #eef2f7 100%);
+  padding: 1rem 1.5rem;
+  border-radius: 16px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 2px solid #e8ecf1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.coords-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.coords-text {
+  color: #637381;
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.5px;
+}
+
 .location-tags {
   display: flex;
   gap: 1rem;
@@ -271,6 +332,34 @@ body {
   font-size: 1.05rem;
   flex: 1;
   line-height: 1.6;
+}
+
+.reminder-info {
+  background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+  padding: 1rem 1.5rem;
+  border-radius: 16px;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  color: #d63031;
+  font-weight: 700;
+  font-size: 1.05rem;
+  border: 2px solid #fdcb6e;
+  box-shadow: 0 4px 12px rgba(253, 203, 110, 0.3);
+  animation: pulse-reminder 2s ease-in-out infinite;
+}
+
+@keyframes pulse-reminder {
+
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(253, 203, 110, 0.3);
+  }
+
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 6px 16px rgba(253, 203, 110, 0.5);
+  }
 }
 
 .button-group {
@@ -381,9 +470,22 @@ body {
 }
 
 .button:disabled {
-  opacity: 0.6;
+  opacity: 0.7;
   cursor: not-allowed;
   transform: none !important;
+  animation: loading-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes loading-pulse {
+
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .camera-section {
@@ -435,7 +537,6 @@ body {
   display: block;
 }
 
-/* 입력 필드 스타일 */
 .input-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -486,6 +587,20 @@ body {
   font-weight: 500;
 }
 
+select.text-input {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23637381' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 12px;
+  padding-right: 3rem;
+  appearance: none;
+}
+
+select.text-input:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667eea' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+}
+
 .memo-input {
   width: 100%;
   padding: 1rem 1.25rem;
@@ -523,7 +638,6 @@ body {
   text-align: center;
 }
 
-/* 모바일 최적화 */
 @media (max-width: 640px) {
   .header-icon {
     font-size: 3.5rem;
@@ -557,9 +671,27 @@ body {
   .info-header h2 {
     font-size: 1.5rem;
   }
+
+  .notification-permission-btn {
+    font-size: 0.85rem;
+    padding: 0.6rem 1.2rem;
+  }
+
+  .notification-status {
+    font-size: 0.85rem;
+    padding: 0.4rem 1rem;
+  }
+
+  .coords-text {
+    font-size: 0.8rem;
+  }
+
+  .reminder-info {
+    font-size: 0.95rem;
+    padding: 0.85rem 1.25rem;
+  }
 }
 
-/* 스크롤바 스타일 */
 ::-webkit-scrollbar {
   width: 10px;
 }
